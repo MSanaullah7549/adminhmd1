@@ -77,3 +77,4 @@ Backend integration by the development team.
  - Design and Code is Copyright &copy; <a href="https://github.com/HasanMammudDev" target="_blank">Md. Hasan Mahmud</a>
  - Licensed cover under [MIT]
  - Distributed by <a href="https://themewagon.com" target="_blank">ThemeWagon</a>
+# adminhmd1
