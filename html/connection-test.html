@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frontend-Backend Connection Test | adminHMD</title>
+  <link rel="stylesheet" href="../assets/css/bootstrap.min.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    .test-container {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .test-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .test-header h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    .test-header p {
+      color: #666;
+      margin: 0;
+    }
+    .test-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      background: #f8f9fa;
+      transition: all 0.3s ease;
+    }
+    .test-item.loading {
+      background: #e7f3ff;
+    }
+    .test-item.success {
+      background: #d4edda;
+      border-left: 4px solid #28a745;
+    }
+    .test-item.error {
+      background: #f8d7da;
+      border-left: 4px solid #dc3545;
+    }
+    .test-icon {
+      font-size: 24px;
+      margin-right: 15px;
+      min-width: 30px;
+      text-align: center;
+    }
+    .test-content {
+      flex-grow: 1;
+    }
+    .test-label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .test-status {
+      font-size: 14px;
+      color: #666;
+      margin: 0;
+    }
+    .connection-info {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f0f4ff;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    .connection-info h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .connection-info code {
+      display: block;
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: #333;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+    }
+    .connection-info code:last-child {
+      margin-bottom: 0;
+    }
+    .all-passed {
+      text-align: center;
+      padding: 20px;
+      background: #d4edda;
+      border: 2px solid #28a745;
+      border-radius: 8px;
+      color: #155724;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>🔗 Connection Test</h1>
+      <p>Frontend &amp; Backend Integration Status</p>
+    </div>
+
+    <div id="testResults"></div>
+
+    <div class="connection-info">
+      <h3>📡 Connection URLs</h3>
+      <code>Frontend: <span id="frontendUrl">http://localhost:3000</span></code>
+      <code>Backend API: <span id="backendUrl">http://localhost:3000/api</span></code>
+    </div>
+  </div>
+
+  <script src="../assets/js/api-client.js"></script>
+  <script>
+    const tests = [
+      {
+        name: 'Backend API Health',
+        endpoint: '/health',
+        method: 'GET'
+      },
+      {
+        name: 'Get Users (requires auth)',
+        endpoint: '/users',
+        method: 'GET',
+        requiresAuth: true
+      }
+    ];
+
+    const resultsContainer = document.getElementById('testResults');
+    let passedTests = 0;
+    let failedTests = 0;
+
+    async function runTest(test) {
+      const testId = `test-${tests.indexOf(test)}`;
+      const testElement = document.createElement('div');
+      testElement.id = testId;
+      testElement.className = 'test-item loading';
+      testElement.innerHTML = `
+        <div class="test-icon">⏳</div>
+        <div class="test-content">
+          <div class="test-label">${test.name}</div>
+          <p class="test-status">Testing...</p>
+        </div>
+      `;
+      resultsContainer.appendChild(testElement);
+
+      try {
+        const response = await fetch(`http://localhost:3000/api${test.endpoint}`, {
+          method: test.method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': test.requiresAuth ? 'Bearer demo-token' : undefined
+          }
+        });
+
+        const data = await response.json();
+        const isSuccess = response.ok || test.requiresAuth; // Allow 401 for auth tests
+
+        testElement.className = `test-item ${isSuccess || response.status === 401 ? 'success' : 'error'}`;
+        testElement.innerHTML = `
+          <div class="test-icon">${isSuccess || response.status === 401 ? '✅' : '❌'}</div>
+          <div class="test-content">
+            <div class="test-label">${test.name}</div>
+            <p class="test-status">
+              ${response.status} - ${isSuccess || response.status === 401 ? 'Passed' : 'Failed'}
+              ${data.success !== undefined ? `(API Status: ${data.success})` : ''}
+            </p>
+          </div>
+        `;
+
+        if (isSuccess || response.status === 401) {
+          passedTests++;
+        } else {
+          failedTests++;
+        }
+      } catch (error) {
+        testElement.className = 'test-item error';
+        testElement.innerHTML = `
+          <div class="test-icon">❌</div>
+          <div class="test-content">
+            <div class="test-label">${test.name}</div>
+            <p class="test-status">Error: ${error.message}</p>
+          </div>
+        `;
+        failedTests++;
+      }
+
+      // Show summary when all tests are done
+      if (passedTests + failedTests === tests.length) {
+        if (failedTests === 0) {
+          const summary = document.createElement('div');
+          summary.className = 'all-passed';
+          summary.innerHTML = `✅ All tests passed! Frontend and Backend are connected.`;
+          resultsContainer.appendChild(summary);
+        }
+      }
+    }
+
+    // Run all tests
+    window.addEventListener('DOMContentLoaded', () => {
+      tests.forEach(test => runTest(test));
+    });
+  </script>
+</body>
+</html>
